@@ -34,6 +34,7 @@ env/
 
 # Application
 data/*.db
+data/*.wal
 logs/*.log
 results/*
 
