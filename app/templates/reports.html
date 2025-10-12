@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - Mintly{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Spending Reports</h2>
+    <p>Analyze your spending patterns and trends</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>Date Range</h3>
+    </div>
+    <div class="card-body">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="startDate">Start Date</label>
+                <input type="date" id="startDate">
+            </div>
+            <div class="form-group">
+                <label for="endDate">End Date</label>
+                <input type="date" id="endDate">
+            </div>
+            <div class="form-group">
+                <button class="btn btn-primary" onclick="loadReports()">Generate Report</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="summaryCard" class="card" style="display: none;">
+    <div class="card-header">
+        <h3>Summary</h3>
+    </div>
+    <div class="card-body">
+        <div class="summary-grid">
+            <div class="summary-item">
+                <div class="summary-label">Total Income</div>
+                <div class="summary-value income" id="totalIncome">$0.00</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Total Spent</div>
+                <div class="summary-value expense" id="totalSpent">$0.00</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Net Balance</div>
+                <div class="summary-value" id="netBalance">$0.00</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="chartsContainer" style="display: none;">
+    <div class="card">
+        <div class="card-header">
+            <h3>Spending by Category</h3>
+        </div>
+        <div class="card-body">
+            <div id="pieChart"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>Category Breakdown</h3>
+        </div>
+        <div class="card-body">
+            <div id="barChart"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>Spending Trend</h3>
+        </div>
+        <div class="card-body">
+            <div id="trendChart"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Set default dates to current month
+function setDefaultDates() {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    document.getElementById('startDate').valueAsDate = firstDay;
+    document.getElementById('endDate').valueAsDate = today;
+}
+
+async function loadReports() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    if (!startDate || !endDate) {
+        alert('Please select both start and end dates');
+        return;
+    }
+    
+    try {
+        // Load summary
+        const summaryResponse = await fetch(`/api/reports/summary?start_date=${startDate}&end_date=${endDate}`);
+        const summaryData = await summaryResponse.json();
+        
+        if (summaryData.status === 'success') {
+            displaySummary(summaryData.report);
+            
+            // Load charts
+            loadChart('pieChart', `/api/reports/chart/category-pie?start_date=${startDate}&end_date=${endDate}`);
+            loadChart('barChart', `/api/reports/chart/category-bar?start_date=${startDate}&end_date=${endDate}`);
+            loadChart('trendChart', `/api/reports/chart/spending-trend?start_date=${startDate}&end_date=${endDate}`);
+            
+            document.getElementById('summaryCard').style.display = 'block';
+            document.getElementById('chartsContainer').style.display = 'block';
+        }
+    } catch (error) {
+        alert('Error loading reports: ' + error.message);
+    }
+}
+
+function displaySummary(report) {
+    document.getElementById('totalIncome').textContent = `$${report.total_income.toFixed(2)}`;
+    document.getElementById('totalSpent').textContent = `$${report.total_spent.toFixed(2)}`;
+    
+    const netBalance = document.getElementById('netBalance');
+    netBalance.textContent = `$${report.net_balance.toFixed(2)}`;
+    netBalance.className = report.net_balance >= 0 ? 'summary-value income' : 'summary-value expense';
+}
+
+async function loadChart(elementId, url) {
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.error) {
+            document.getElementById(elementId).innerHTML = `<p class="error">${data.error}</p>`;
+        } else {
+            const figure = JSON.parse(data);
+            Plotly.newPlot(elementId, figure.data, figure.layout, {responsive: true});
+        }
+    } catch (error) {
+        document.getElementById(elementId).innerHTML = `<p class="error">Error loading chart: ${error.message}</p>`;
+    }
+}
+
+// Initialize with default dates
+setDefaultDates();
+</script>
+{% endblock %}
+

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Transactions - Mintly{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Upload Transactions</h2>
+    <p>Upload your credit card statement in CSV format</p>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="csvFile">Select CSV File</label>
+                <input type="file" id="csvFile" name="file" accept=".csv" required>
+                <small>Expected columns: Date, Description, Amount</small>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Upload & Process</button>
+        </form>
+        
+        <div id="uploadStatus" class="status-message" style="display: none;"></div>
+        <div id="uploadProgress" class="progress-bar" style="display: none;">
+            <div class="progress-fill"></div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>CSV Format Guide</h3>
+    </div>
+    <div class="card-body">
+        <p>Your CSV file should contain the following columns:</p>
+        <ul>
+            <li><strong>Date:</strong> Transaction date (YYYY-MM-DD or MM/DD/YYYY)</li>
+            <li><strong>Description:</strong> Merchant or transaction description</li>
+            <li><strong>Amount:</strong> Transaction amount (negative for expenses, positive for income)</li>
+        </ul>
+        
+        <h4>Example CSV:</h4>
+        <pre class="code-block">Date,Description,Amount
+2025-01-15,Starbucks Coffee,-4.50
+2025-01-16,Amazon.com,-45.99
+2025-01-17,Shell Gas Station,-52.30
+2025-01-20,Paycheck Deposit,2500.00</pre>
+    </div>
+</div>
+
+<script>
+document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    const fileInput = document.getElementById('csvFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        showStatus('Please select a file', 'error');
+        return;
+    }
+    
+    formData.append('file', file);
+    
+    const statusDiv = document.getElementById('uploadStatus');
+    const progressDiv = document.getElementById('uploadProgress');
+    
+    statusDiv.style.display = 'none';
+    progressDiv.style.display = 'block';
+    
+    try {
+        const response = await fetch('/api/transactions/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        progressDiv.style.display = 'none';
+        
+        if (response.ok) {
+            showStatus(`Success! Uploaded ${data.count} transactions. <a href="/transactions">View Transactions</a>`, 'success');
+            fileInput.value = '';
+        } else {
+            showStatus(`Error: ${data.detail}`, 'error');
+        }
+    } catch (error) {
+        progressDiv.style.display = 'none';
+        showStatus(`Error: ${error.message}`, 'error');
+    }
+});
+
+function showStatus(message, type) {
+    const statusDiv = document.getElementById('uploadStatus');
+    statusDiv.innerHTML = message;
+    statusDiv.className = `status-message ${type}`;
+    statusDiv.style.display = 'block';
+}
+</script>
+{% endblock %}
+

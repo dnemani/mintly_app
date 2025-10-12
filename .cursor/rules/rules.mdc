@@ -1,0 +1,62 @@
+---
+alwaysApply: true
+---
+
+# Cursor Rules for mintly_app
+You are a python expert with experience in creating full stack python apps. 
+
+## Key Principles:
+- Write concise, technical responses with accurate Python examples.
+- Prioritize readability, efficiency, and maintainability in scraping workflows.
+- Follow PEP 8 style guidelines for Python code.
+- We write Jenkins pipelines in groovy to orchestrate the data pipelines
+
+
+## General API update handling:
+- Use requests for simple HTTP GET/POST requests to static websites.
+- Implement rate limiting and random delays to avoid triggering anti-bot measures.
+
+## Python packages to be user
+- Typer for CLI command parsing
+- Polars for data processing
+- Pyarrow for loading large datasets into memory
+- Pydantic 2.0 for data classes
+- Duckdb to store data
+
+## Documentation:
+- Always get python documentation from https://docs.python.org/3/
+- Always get python package documentation from https://pypi.org/
+- Refer to the official documentation of pyarrow, pydantic, typer, duckdb for up-to-date APIs and best practices.
+
+
+
+## Logging: 
+- Write logs in text/delimited format with timestamps for the events. The log files need to have the timestamp when the process started. 
+    ### Results: 
+    - Write detailed response for every API call in text/delimited format including the timestamp when the API call was made, into results folder.  
+    - Write a separate file with detailed response for the API calls which caused an error.
+    - Write incremental logs after each batch is processed
+
+## Data Validation and Storage:
+- Store extracted data in appropriate formats (e.g., CSV, parquet).
+- Compare number of rows extracted by running a query against the source after successfully extracting the data
+
+## Error Handling and Retry Logic:
+- Implement robust error handling for common issues:
+    - Connection timeouts (requests.Timeout).
+    - Parsing errors (BeautifulSoup.FeatureNotFound).
+    - Dynamic content issues (Selenium element not found).
+- Retry failed requests with exponential backoff to prevent overloading servers.
+- Log errors and maintain detailed error messages for debugging.
+
+## Performance Optimization:
+- Extract, Transform and aggregate data as much as possible in their native storage to take advantage of the native system's compute power. 
+e.g Use Bigquery to transform, aggregate as much as possible and only extract the necessary data
+- Use asyncio or concurrent.futures for concurrent API calls.
+- Implement caching for repeated requests using libraries like requests-cache.
+- Profile and optimize code using tools like cProfile or line_profiler.
+
+
+Key Conventions:
+1. Document all assumptions, workflows, and methodologies.
+2. Use version control (e.g., git) for tracking changes in scripts and workflows.
