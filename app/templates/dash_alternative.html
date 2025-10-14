@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Reports - Mintly</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <h1>💰 Mintly</h1>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/" class="nav-link">Upload</a></li>
+                <li><a href="/transactions" class="nav-link">Transactions</a></li>
+                <li><a href="/reports" class="nav-link">Reports</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="page-header">
+                <h2>📊 Interactive Reports</h2>
+                <p>Choose your preferred reporting interface</p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>✨ React Frontend (Recommended)</h3>
+                </div>
+                <div class="card-body">
+                    <p><strong>Modern, interactive reports with all features!</strong></p>
+                    <ul>
+                        <li>✅ Quick date range presets (MTD, YTD, QTD, 30D, 60D, 90D)</li>
+                        <li>✅ Category filter checkboxes</li>
+                        <li>✅ Interactive Recharts visualizations</li>
+                        <li>✅ Real-time updates</li>
+                        <li>✅ Mobile-responsive design</li>
+                    </ul>
+                    <a href="http://localhost:3000/reports" class="btn btn-primary" target="_blank">
+                        Open React Reports →
+                    </a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>📈 Python/Plotly Reports</h3>
+                </div>
+                <div class="card-body">
+                    <p><strong>Server-side rendered Plotly charts</strong></p>
+                    <ul>
+                        <li>✅ Date range selection</li>
+                        <li>✅ Pie, bar, and trend charts</li>
+                        <li>✅ Interactive Plotly features</li>
+                        <li>✅ Works without JavaScript frameworks</li>
+                    </ul>
+                    <a href="/reports" class="btn btn-secondary">
+                        Open Python Reports →
+                    </a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>🎯 Quick Comparison</h3>
+                </div>
+                <div class="card-body">
+                    <table class="transactions-table">
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>React Frontend</th>
+                                <th>Python Frontend</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Date Presets</td>
+                                <td class="income">✅ MTD/YTD/QTD/30D/60D/90D</td>
+                                <td class="expense">❌ Manual only</td>
+                            </tr>
+                            <tr>
+                                <td>Category Filters</td>
+                                <td class="income">✅ Checkboxes</td>
+                                <td class="expense">❌</td>
+                            </tr>
+                            <tr>
+                                <td>Chart Library</td>
+                                <td>Recharts</td>
+                                <td>Plotly</td>
+                            </tr>
+                            <tr>
+                                <td>Updates</td>
+                                <td class="income">✅ Real-time</td>
+                                <td class="expense">Page reload</td>
+                            </tr>
+                            <tr>
+                                <td>Port</td>
+                                <td>3000</td>
+                                <td>8000</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>💡 Tip: Use React Frontend</h3>
+                </div>
+                <div class="card-body">
+                    <p>For the best experience with date presets and filters, we recommend using the <strong>React frontend</strong>:</p>
+                    <div class="code-block">http://localhost:3000/reports</div>
+                    <p class="info-text">
+                        It includes all the interactive features like MTD/YTD/QTD buttons, category filtering, and real-time chart updates!
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Mintly. Track your spending, save your future.</p>
+        </div>
+    </footer>
+</body>
+</html>
+
+

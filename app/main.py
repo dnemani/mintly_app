@@ -5,6 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.wsgi import WSGIMiddleware
 import uvicorn
 import logging
 from datetime import datetime
@@ -44,6 +45,11 @@ templates = Jinja2Templates(directory="app/templates")
 app.include_router(transactions.router)
 app.include_router(reports.router)
 
+# Note: Dash integration has technical limitations with FastAPI's WSGIMiddleware
+# For interactive reports with filters and date presets, use the React frontend at port 3000
+dash_initialized = False
+logger.info("ℹ️  For interactive reports, use React frontend (port 3000) or Python reports (port 8000)")
+
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -53,8 +59,15 @@ async def home(request: Request):
 
 @app.get("/reports", response_class=HTMLResponse)
 async def reports_page(request: Request):
-    """Reports and analytics page"""
+    """Reports and analytics page (static Plotly)"""
     return templates.TemplateResponse("reports.html", {"request": request})
+
+
+@app.get("/dash", response_class=HTMLResponse)
+@app.get("/dash/", response_class=HTMLResponse)
+async def interactive_reports_info(request: Request):
+    """Show interactive reports options"""
+    return templates.TemplateResponse("dash_alternative.html", {"request": request})
 
 
 @app.get("/transactions", response_class=HTMLResponse)
@@ -68,6 +81,7 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
+        "dash_enabled": dash_initialized,
         "timestamp": datetime.now().isoformat()
     }
 

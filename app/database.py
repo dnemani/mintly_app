@@ -160,13 +160,26 @@ class DatabaseManager:
         """Get transactions within a date range"""
         try:
             result = self.conn.execute("""
-                SELECT id, date, description, amount, category, notes, is_split, parent_transaction_id
+                SELECT id, date, description, amount, category, notes, is_split, parent_transaction_id, created_at
                 FROM transactions
                 WHERE date BETWEEN ? AND ?
                 ORDER BY date DESC
-            """, [start_date, end_date]).arrow()
+            """, [start_date, end_date]).fetchall()
             
-            df = pl.from_arrow(result)
+            # Handle empty results
+            if not result:
+                logger.info(f"No transactions found between {start_date} and {end_date}")
+                return pl.DataFrame({
+                    'id': [], 'date': [], 'description': [], 'amount': [], 
+                    'category': [], 'notes': [], 'is_split': [], 
+                    'parent_transaction_id': [], 'created_at': []
+                })
+            
+            # Convert to list of dicts
+            columns = ['id', 'date', 'description', 'amount', 'category', 'notes', 'is_split', 'parent_transaction_id', 'created_at']
+            transactions = [dict(zip(columns, row)) for row in result]
+            df = pl.DataFrame(transactions)
+            
             logger.info(f"Retrieved {len(df)} transactions between {start_date} and {end_date}")
             return df
         except Exception as e:

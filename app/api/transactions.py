@@ -160,3 +160,21 @@ async def get_categories():
         "categories": [cat.value for cat in CategoryEnum]
     }
 
+
+@router.get("/date-range")
+async def get_transactions_by_date_range(start_date: str, end_date: str):
+    """Get transactions within a date range"""
+    try:
+        df = db_manager.get_transactions_by_date_range(start_date, end_date)
+        
+        # Convert Polars DataFrame to list of dicts
+        if len(df) == 0:
+            return []
+        
+        transactions = df.to_dicts()
+        return transactions
+    
+    except Exception as e:
+        logger.error(f"Error getting transactions by date range: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving transactions: {str(e)}")
+

@@ -12,6 +12,7 @@ A complete, production-ready Python-based personal budgeting application that he
 - 🤖 **Auto-Categorization**: Automatically categorize transactions based on 100+ merchant patterns
 - ✂️ **Transaction Splitting**: Split transactions across multiple categories
 - 📊 **Visual Reports**: Interactive Plotly charts showing spending by category
+- 🎛️ **Interactive Dashboard**: Dash reports with filters and date range presets (MTD/YTD/QTD/30D/60D/90D)
 - 💾 **DuckDB Storage**: Efficient local database storage with full privacy
 - 🌐 **Web Interface**: Beautiful, responsive web interface for all operations
 - 🐳 **Docker Ready**: One-command deployment with Docker Compose
@@ -134,6 +135,7 @@ Date,Description,Amount
 
 ## 📚 Documentation
 
+- **[DASH_REPORTS_GUIDE.md](DASH_REPORTS_GUIDE.md)** - Interactive Dash reports guide ⭐ NEW
 - **[FRONTEND_GUIDE.md](FRONTEND_GUIDE.md)** - Guide to React vs Python frontend
 - **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Complete project overview and technical details
 - **[USAGE_GUIDE.md](USAGE_GUIDE.md)** - Comprehensive user guide with examples
@@ -154,6 +156,11 @@ View beautiful interactive charts:
 - 🥧 Pie chart: Overall spending distribution
 - 📊 Bar chart: Category breakdown
 - 📈 Line chart: Daily spending trends
+- 🎛️ **NEW!** Interactive Dash reports with filters and date presets
+  - Quick date ranges: MTD, YTD, QTD, 30/60/90 days
+  - Category and amount filters
+  - Top merchants analysis
+  - Sortable transaction tables
 
 ### Stay Private
 All data stays local on your machine. No cloud services, no data sharing.

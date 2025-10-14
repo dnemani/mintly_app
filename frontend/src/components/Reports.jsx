@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { getSpendingSummary } from '../services/api'
-import { format, startOfMonth, endOfMonth } from 'date-fns'
+import { format, startOfMonth, endOfMonth, startOfYear, subDays, startOfQuarter } from 'date-fns'
 import {
   PieChart,
   Pie,
@@ -27,11 +27,12 @@ function Reports() {
     format(startOfMonth(new Date()), 'yyyy-MM-dd')
   )
   const [endDate, setEndDate] = useState(
-    format(endOfMonth(new Date()), 'yyyy-MM-dd')
+    format(new Date(), 'yyyy-MM-dd')
   )
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [categoryFilter, setCategoryFilter] = useState([])
 
   const loadReport = async () => {
     setLoading(true)
@@ -52,17 +53,58 @@ function Reports() {
     loadReport()
   }, [])
 
+  const setDateRangePreset = (preset) => {
+    const today = new Date()
+    let start, end = today
+
+    switch (preset) {
+      case 'mtd': // Month to Date
+        start = startOfMonth(today)
+        break
+      case 'ytd': // Year to Date
+        start = startOfYear(today)
+        break
+      case 'qtd': // Quarter to Date
+        start = startOfQuarter(today)
+        break
+      case '30d': // Last 30 days
+        start = subDays(today, 30)
+        break
+      case '60d': // Last 60 days
+        start = subDays(today, 60)
+        break
+      case '90d': // Last 90 days
+        start = subDays(today, 90)
+        break
+      default:
+        start = startOfMonth(today)
+    }
+
+    setStartDate(format(start, 'yyyy-MM-dd'))
+    setEndDate(format(end, 'yyyy-MM-dd'))
+    
+    // Auto-load report after preset selection
+    setTimeout(() => loadReport(), 100)
+  }
+
   const formatCurrency = (value) => `$${Math.abs(value).toFixed(2)}`
 
-  const pieData = summary?.categories.map((cat) => ({
+  // Apply category filter
+  const filteredCategories = summary?.categories.filter(cat => 
+    categoryFilter.length === 0 || categoryFilter.includes(cat.category)
+  ) || []
+
+  const pieData = filteredCategories.map((cat) => ({
     name: cat.category,
     value: cat.total_amount,
-  })) || []
+  }))
 
-  const barData = summary?.categories.map((cat) => ({
+  const barData = filteredCategories.map((cat) => ({
     category: cat.category,
     amount: cat.total_amount,
-  })) || []
+  }))
+
+  const availableCategories = summary?.categories.map(cat => cat.category) || []
 
   return (
     <div className="reports-page">
@@ -73,9 +115,33 @@ function Reports() {
 
       <div className="card">
         <div className="card-header">
-          <h3>Date Range</h3>
+          <h3>📅 Date Range & Filters</h3>
         </div>
         <div className="card-body">
+          <div className="form-group">
+            <label>Quick Date Ranges:</label>
+            <div className="button-group">
+              <button className="btn btn-secondary btn-small" onClick={() => setDateRangePreset('mtd')}>
+                MTD
+              </button>
+              <button className="btn btn-secondary btn-small" onClick={() => setDateRangePreset('ytd')}>
+                YTD
+              </button>
+              <button className="btn btn-secondary btn-small" onClick={() => setDateRangePreset('qtd')}>
+                QTD
+              </button>
+              <button className="btn btn-secondary btn-small" onClick={() => setDateRangePreset('30d')}>
+                30 Days
+              </button>
+              <button className="btn btn-secondary btn-small" onClick={() => setDateRangePreset('60d')}>
+                60 Days
+              </button>
+              <button className="btn btn-secondary btn-small" onClick={() => setDateRangePreset('90d')}>
+                90 Days
+              </button>
+            </div>
+          </div>
+          
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="startDate">Start Date</label>
@@ -101,6 +167,30 @@ function Reports() {
               </button>
             </div>
           </div>
+
+          {summary && (
+            <div className="form-group">
+              <label>Filter by Category:</label>
+              <div className="category-filter-chips">
+                {availableCategories.map(cat => (
+                  <label key={cat} className="filter-chip">
+                    <input
+                      type="checkbox"
+                      checked={categoryFilter.includes(cat)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setCategoryFilter([...categoryFilter, cat])
+                        } else {
+                          setCategoryFilter(categoryFilter.filter(c => c !== cat))
+                        }
+                      }}
+                    />
+                    <span>{cat}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

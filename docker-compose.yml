@@ -34,6 +34,24 @@ services:
     networks:
       - mintly_network
 
+  dash:
+    build: .
+    container_name: mintly_dash
+    command: python run_dash_standalone.py
+    ports:
+      - "8050:8050"
+    volumes:
+      - ./run_dash_standalone.py:/app/run_dash_standalone.py
+    environment:
+      - PYTHONUNBUFFERED=1
+      - BACKEND_API_URL=http://backend:8000/api
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - mintly_network
+
 networks:
   mintly_network:
     driver: bridge
