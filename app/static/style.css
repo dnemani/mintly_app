@@ -445,6 +445,92 @@ body {
     margin: 0;
 }
 
+/* Tag Styles */
+.tag {
+    display: inline-block;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    margin: 2px;
+    font-weight: 500;
+}
+
+.tag.current-tag {
+    background-color: var(--primary-color);
+    position: relative;
+    padding-right: 20px;
+}
+
+.tag.available-tag {
+    background-color: var(--light-color);
+    color: var(--dark-color);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.tag.available-tag:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.tag-remove {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tag-remove:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.tag-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+    min-height: 30px;
+    align-items: center;
+}
+
+.no-tags {
+    color: #999;
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+.tags-display {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tags-display .tag {
+    margin: 1px;
+    font-size: 0.75rem;
+    padding: 1px 6px;
+}
+
+.error {
+    color: var(--danger-color);
+    font-size: 0.9rem;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .nav-menu {
@@ -461,6 +547,14 @@ body {
     
     .summary-grid {
         grid-template-columns: 1fr;
+    }
+    
+    .tags-display {
+        max-width: 150px;
+    }
+    
+    .tag-container {
+        gap: 2px;
     }
 }
 

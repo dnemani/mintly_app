@@ -7,12 +7,16 @@ from typing import List, Dict, Optional
 import csv
 from io import StringIO
 import logging
+from app.merchant_extractor import merchant_extractor
 
 logger = logging.getLogger(__name__)
 
 
 class CSVParser(ABC):
     """Base class for CSV parsers"""
+    
+    # Each parser should define its source name
+    source_name: str = "Unknown"
     
     @abstractmethod
     def parse(self, csv_content: str) -> List[Dict]:
@@ -48,6 +52,8 @@ class CSVParser(ABC):
 
 class CitibankParser(CSVParser):
     """Parser for Citibank credit card statements"""
+    
+    source_name = "Citibank"
     
     def detect(self, csv_content: str) -> bool:
         """Detect Citibank format by checking for Status, Debit, Credit columns"""
@@ -112,11 +118,16 @@ class CitibankParser(CSVParser):
                 logger.warning(f"Citibank: Could not parse amount for: {description}")
                 continue
             
+            # Extract merchant from description
+            merchant = merchant_extractor.extract(description)
+            
             transactions.append({
                 'date': date_obj,
                 'description': description,
                 'amount': amount,
-                'notes': f"Status: {status}" if status else None
+                'notes': f"Status: {status}" if status else None,
+                'source': self.source_name,
+                'merchant': merchant
             })
         
         logger.info(f"Citibank: Parsed {len(transactions)} transactions")
@@ -125,6 +136,8 @@ class CitibankParser(CSVParser):
 
 class GenericParser(CSVParser):
     """Generic parser for standard Date, Description, Amount format"""
+    
+    source_name = "Generic CSV"
     
     def detect(self, csv_content: str) -> bool:
         """Detect generic format"""
@@ -184,10 +197,15 @@ class GenericParser(CSVParser):
             if amount is None:
                 continue
             
+            # Extract merchant from description
+            merchant = merchant_extractor.extract(description)
+            
             transactions.append({
                 'date': date_obj,
                 'description': description,
-                'amount': amount
+                'amount': amount,
+                'source': self.source_name,
+                'merchant': merchant
             })
         
         logger.info(f"Generic: Parsed {len(transactions)} transactions")
@@ -196,6 +214,8 @@ class GenericParser(CSVParser):
 
 class CostcoVisaParser(CSVParser):
     """Parser for Costco Visa credit card statements"""
+    
+    source_name = "Costco Visa"
     
     def detect(self, csv_content: str) -> bool:
         """Detect Costco Visa format by checking for Member Name column"""
@@ -264,11 +284,16 @@ class CostcoVisaParser(CSVParser):
             if member_name:
                 notes_parts.append(f"Member: {member_name}")
             
+            # Extract merchant from description
+            merchant = merchant_extractor.extract(description)
+            
             transactions.append({
                 'date': date_obj,
                 'description': description,
                 'amount': amount,
-                'notes': ' | '.join(notes_parts) if notes_parts else None
+                'notes': ' | '.join(notes_parts) if notes_parts else None,
+                'source': self.source_name,
+                'merchant': merchant
             })
         
         logger.info(f"Costco Visa: Parsed {len(transactions)} transactions")
@@ -277,6 +302,8 @@ class CostcoVisaParser(CSVParser):
 
 class ChaseParser(CSVParser):
     """Parser for Chase credit card statements"""
+    
+    source_name = "Chase"
     
     def detect(self, csv_content: str) -> bool:
         """Detect Chase format"""
@@ -316,12 +343,17 @@ class ChaseParser(CSVParser):
             if amount is None:
                 continue
             
+            # Extract merchant from description
+            merchant = merchant_extractor.extract(description)
+            
             # Chase shows purchases as negative, payments as positive
             transactions.append({
                 'date': date_obj,
                 'description': description,
                 'amount': amount,
-                'notes': f"Type: {txn_type}" if txn_type else None
+                'notes': f"Type: {txn_type}" if txn_type else None,
+                'source': self.source_name,
+                'merchant': merchant
             })
         
         logger.info(f"Chase: Parsed {len(transactions)} transactions")

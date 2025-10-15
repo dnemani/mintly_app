@@ -10,7 +10,7 @@ import plotly.express as px
 from typing import Optional
 import logging
 
-from app.database import db_manager
+from app.db_instance import db_manager
 from app.models import SpendingReport, CategorySummary
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])

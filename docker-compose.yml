@@ -42,6 +42,9 @@ services:
       - "8050:8050"
     volumes:
       - ./run_dash_standalone.py:/app/run_dash_standalone.py
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./results:/app/results
     environment:
       - PYTHONUNBUFFERED=1
       - BACKEND_API_URL=http://backend:8000/api

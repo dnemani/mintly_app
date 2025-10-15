@@ -5,7 +5,7 @@ import duckdb
 import polars as pl
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict
 import logging
 
 # Set up logging
@@ -23,12 +23,17 @@ logger = logging.getLogger(__name__)
 class DatabaseManager:
     """Manages DuckDB database operations"""
     
-    def __init__(self, db_path: str = "data/mintly.db"):
+    def __init__(self, db_path: str = "data/mintly.db", read_only: bool = False):
         self.db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        self.conn = duckdb.connect(db_path)
-        self._initialize_schema()
-        logger.info(f"Database initialized at {db_path}")
+        if read_only:
+            self.conn = duckdb.connect(db_path, read_only=True)
+            # Skip schema initialization in read-only mode
+            logger.info(f"Database initialized in read-only mode at {db_path}")
+        else:
+            self.conn = duckdb.connect(db_path)
+            self._initialize_schema()
+            logger.info(f"Database initialized at {db_path}")
     
     def _initialize_schema(self):
         """Create database tables if they don't exist"""
@@ -44,14 +49,45 @@ class DatabaseManager:
                     notes VARCHAR,
                     is_split BOOLEAN DEFAULT FALSE,
                     parent_transaction_id INTEGER,
+                    source VARCHAR,
+                    merchant VARCHAR,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (parent_transaction_id) REFERENCES transactions(id)
                 )
             """)
             
+            # Create tags table
+            self.conn.execute("""
+                CREATE TABLE IF NOT EXISTS tags (
+                    id INTEGER PRIMARY KEY,
+                    name VARCHAR NOT NULL UNIQUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Create transaction_tags junction table
+            self.conn.execute("""
+                CREATE TABLE IF NOT EXISTS transaction_tags (
+                    transaction_id INTEGER,
+                    tag_id INTEGER,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (transaction_id, tag_id),
+                    FOREIGN KEY (transaction_id) REFERENCES transactions(id),
+                    FOREIGN KEY (tag_id) REFERENCES tags(id)
+                )
+            """)
+            
+            # Add columns to existing transactions table if they don't exist
+            self._add_column_if_not_exists('transactions', 'source', 'VARCHAR')
+            self._add_column_if_not_exists('transactions', 'merchant', 'VARCHAR')
+            
             # Create sequence for auto-incrementing IDs
             self.conn.execute("""
                 CREATE SEQUENCE IF NOT EXISTS transactions_id_seq START 1
+            """)
+            
+            self.conn.execute("""
+                CREATE SEQUENCE IF NOT EXISTS tags_id_seq START 1
             """)
             
             # Sync sequence with existing data
@@ -61,6 +97,22 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error initializing database schema: {str(e)}")
             raise
+    
+    def _add_column_if_not_exists(self, table: str, column: str, datatype: str):
+        """Add a column to a table if it doesn't already exist"""
+        try:
+            # Check if column exists
+            result = self.conn.execute(f"""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = '{table}' AND column_name = '{column}'
+            """).fetchall()
+            
+            if not result:
+                self.conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {datatype}")
+                logger.info(f"Added column {column} to {table}")
+        except Exception as e:
+            logger.warning(f"Could not add column {column} to {table}: {str(e)}")
     
     def _sync_sequence(self):
         """Synchronize sequence with max ID in table"""
@@ -123,12 +175,16 @@ class DatabaseManager:
                 df = df.with_columns(pl.lit(False).alias('is_split'))
             if 'parent_transaction_id' not in df.columns:
                 df = df.with_columns(pl.lit(None).alias('parent_transaction_id'))
+            if 'source' not in df.columns:
+                df = df.with_columns(pl.lit(None).alias('source'))
+            if 'merchant' not in df.columns:
+                df = df.with_columns(pl.lit(None).alias('merchant'))
             
             # Register as a temporary table and insert
             self.conn.register('temp_transactions', df.to_arrow())
             self.conn.execute("""
-                INSERT INTO transactions (id, date, description, amount, category, notes, is_split, parent_transaction_id)
-                SELECT id, date, description, amount, category, notes, is_split, parent_transaction_id
+                INSERT INTO transactions (id, date, description, amount, category, notes, is_split, parent_transaction_id, source, merchant)
+                SELECT id, date, description, amount, category, notes, is_split, parent_transaction_id, source, merchant
                 FROM temp_transactions
             """)
             self.conn.unregister('temp_transactions')
@@ -144,7 +200,7 @@ class DatabaseManager:
         """Get all transactions as a Polars DataFrame"""
         try:
             result = self.conn.execute("""
-                SELECT id, date, description, amount, category, notes, is_split, parent_transaction_id
+                SELECT id, date, description, amount, category, notes, is_split, parent_transaction_id, source, merchant
                 FROM transactions
                 ORDER BY date DESC
             """).arrow()
@@ -160,7 +216,7 @@ class DatabaseManager:
         """Get transactions within a date range"""
         try:
             result = self.conn.execute("""
-                SELECT id, date, description, amount, category, notes, is_split, parent_transaction_id, created_at
+                SELECT id, date, description, amount, category, notes, is_split, parent_transaction_id, source, merchant, created_at
                 FROM transactions
                 WHERE date BETWEEN ? AND ?
                 ORDER BY date DESC
@@ -172,11 +228,11 @@ class DatabaseManager:
                 return pl.DataFrame({
                     'id': [], 'date': [], 'description': [], 'amount': [], 
                     'category': [], 'notes': [], 'is_split': [], 
-                    'parent_transaction_id': [], 'created_at': []
+                    'parent_transaction_id': [], 'source': [], 'merchant': [], 'created_at': []
                 })
             
             # Convert to list of dicts
-            columns = ['id', 'date', 'description', 'amount', 'category', 'notes', 'is_split', 'parent_transaction_id', 'created_at']
+            columns = ['id', 'date', 'description', 'amount', 'category', 'notes', 'is_split', 'parent_transaction_id', 'source', 'merchant', 'created_at']
             transactions = [dict(zip(columns, row)) for row in result]
             df = pl.DataFrame(transactions)
             
@@ -296,12 +352,143 @@ class DatabaseManager:
             logger.error(f"Error updating transaction category: {str(e)}")
             raise
     
+    def get_or_create_tag(self, tag_name: str) -> int:
+        """Get tag ID by name, or create if it doesn't exist"""
+        try:
+            # Check if tag exists
+            result = self.conn.execute("""
+                SELECT id FROM tags WHERE name = ?
+            """, [tag_name]).fetchone()
+            
+            if result:
+                return result[0]
+            
+            # Create new tag
+            tag_id = self.conn.execute("SELECT nextval('tags_id_seq') as next_id").fetchone()[0]
+            self.conn.execute("""
+                INSERT INTO tags (id, name) VALUES (?, ?)
+            """, [tag_id, tag_name])
+            
+            logger.info(f"Created new tag: {tag_name} (ID: {tag_id})")
+            return tag_id
+        except Exception as e:
+            logger.error(f"Error getting/creating tag: {str(e)}")
+            raise
+    
+    def add_tag_to_transaction(self, transaction_id: int, tag_name: str) -> bool:
+        """Add a tag to a transaction"""
+        try:
+            tag_id = self.get_or_create_tag(tag_name)
+            
+            # Add tag to transaction (ignore if already exists)
+            self.conn.execute("""
+                INSERT OR IGNORE INTO transaction_tags (transaction_id, tag_id)
+                VALUES (?, ?)
+            """, [transaction_id, tag_id])
+            
+            logger.info(f"Added tag '{tag_name}' to transaction {transaction_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error adding tag to transaction: {str(e)}")
+            raise
+    
+    def remove_tag_from_transaction(self, transaction_id: int, tag_name: str) -> bool:
+        """Remove a tag from a transaction"""
+        try:
+            # Get tag ID
+            result = self.conn.execute("""
+                SELECT id FROM tags WHERE name = ?
+            """, [tag_name]).fetchone()
+            
+            if not result:
+                logger.warning(f"Tag '{tag_name}' does not exist")
+                return False
+            
+            tag_id = result[0]
+            
+            # Remove tag from transaction
+            self.conn.execute("""
+                DELETE FROM transaction_tags
+                WHERE transaction_id = ? AND tag_id = ?
+            """, [transaction_id, tag_id])
+            
+            logger.info(f"Removed tag '{tag_name}' from transaction {transaction_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error removing tag from transaction: {str(e)}")
+            raise
+    
+    def get_transaction_tags(self, transaction_id: int) -> List[str]:
+        """Get all tags for a transaction"""
+        try:
+            result = self.conn.execute("""
+                SELECT t.name
+                FROM tags t
+                JOIN transaction_tags tt ON t.id = tt.tag_id
+                WHERE tt.transaction_id = ?
+                ORDER BY t.name
+            """, [transaction_id]).fetchall()
+            
+            return [row[0] for row in result]
+        except Exception as e:
+            logger.error(f"Error getting transaction tags: {str(e)}")
+            raise
+    
+    def get_all_tags(self) -> List[Dict]:
+        """Get all tags with usage count"""
+        try:
+            result = self.conn.execute("""
+                SELECT t.id, t.name, COUNT(tt.transaction_id) as usage_count
+                FROM tags t
+                LEFT JOIN transaction_tags tt ON t.id = tt.tag_id
+                GROUP BY t.id, t.name
+                ORDER BY usage_count DESC, t.name
+            """).fetchall()
+            
+            return [
+                {'id': row[0], 'name': row[1], 'usage_count': row[2]}
+                for row in result
+            ]
+        except Exception as e:
+            logger.error(f"Error getting all tags: {str(e)}")
+            raise
+    
+    def get_transactions_by_tag(self, tag_name: str) -> pl.DataFrame:
+        """Get all transactions with a specific tag"""
+        try:
+            result = self.conn.execute("""
+                SELECT t.id, t.date, t.description, t.amount, t.category, 
+                       t.notes, t.source, t.merchant, t.is_split, t.parent_transaction_id
+                FROM transactions t
+                JOIN transaction_tags tt ON t.id = tt.transaction_id
+                JOIN tags tg ON tt.tag_id = tg.id
+                WHERE tg.name = ?
+                ORDER BY t.date DESC
+            """, [tag_name]).fetchall()
+            
+            if not result:
+                return pl.DataFrame({
+                    'id': [], 'date': [], 'description': [], 'amount': [], 'category': [],
+                    'notes': [], 'source': [], 'merchant': [], 'is_split': [], 'parent_transaction_id': []
+                })
+            
+            columns = ['id', 'date', 'description', 'amount', 'category', 'notes', 
+                      'source', 'merchant', 'is_split', 'parent_transaction_id']
+            transactions = [dict(zip(columns, row)) for row in result]
+            df = pl.DataFrame(transactions)
+            
+            logger.info(f"Retrieved {len(df)} transactions with tag '{tag_name}'")
+            return df
+        except Exception as e:
+            logger.error(f"Error getting transactions by tag: {str(e)}")
+            raise
+    
     def close(self):
         """Close database connection"""
         self.conn.close()
         logger.info("Database connection closed")
 
 
-# Global database instance
-db_manager = DatabaseManager()
+# Global database instance - initialized per application
+# db_manager = DatabaseManager()  # Commented out to avoid conflicts
 

@@ -9,7 +9,24 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import pandas as pd
 import logging
-from app.database import db_manager
+from app.database import DatabaseManager
+import shutil
+import os
+
+# Create a copy of the database for read-only access
+def create_db_copy():
+    """Create a copy of the database for read-only access"""
+    source_db = "data/mintly.db"
+    copy_db = "data/mintly_dash.db"
+    
+    if os.path.exists(source_db):
+        shutil.copy2(source_db, copy_db)
+        return copy_db
+    return source_db
+
+# Initialize database manager with a copy for read-only access
+db_copy_path = create_db_copy()
+db_manager = DatabaseManager(db_path=db_copy_path, read_only=True)
 
 logger = logging.getLogger(__name__)
 

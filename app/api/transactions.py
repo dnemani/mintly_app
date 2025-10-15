@@ -7,7 +7,7 @@ import polars as pl
 import logging
 
 from app.models import Transaction, TransactionSplit, CategoryEnum
-from app.database import db_manager
+from app.db_instance import db_manager
 from app.categorizer import categorizer
 from app.csv_parsers import CSVParserFactory
 
@@ -64,7 +64,7 @@ async def upload_transactions(file: UploadFile = File(...)):
 
 @router.get("/list")
 async def list_transactions(limit: int = 100):
-    """Get list of recent transactions"""
+    """Get list of recent transactions with tags, source, and merchant info"""
     try:
         df = db_manager.get_all_transactions()
         
@@ -73,6 +73,21 @@ async def list_transactions(limit: int = 100):
         
         # Convert to list of dicts
         transactions = df.to_dicts()
+        
+        # Add tags, source, and merchant to each transaction
+        for transaction in transactions:
+            transaction_id = transaction.get('id')
+            
+            # Get tags for this transaction
+            tags = db_manager.get_transaction_tags(transaction_id)
+            transaction['tags'] = tags
+            
+            # Source and merchant should already be in the dataframe
+            # but ensure they're present (might be None)
+            if 'source' not in transaction:
+                transaction['source'] = None
+            if 'merchant' not in transaction:
+                transaction['merchant'] = None
         
         return {
             "status": "success",

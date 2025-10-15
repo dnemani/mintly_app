@@ -11,7 +11,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-from app.api import transactions, reports
+from app.api import transactions, reports, tags
 
 # Configure logging
 log_dir = Path("logs")
@@ -44,6 +44,7 @@ templates = Jinja2Templates(directory="app/templates")
 # Include routers
 app.include_router(transactions.router)
 app.include_router(reports.router)
+app.include_router(tags.router)
 
 # Note: Dash integration has technical limitations with FastAPI's WSGIMiddleware
 # For interactive reports with filters and date presets, use the React frontend at port 3000

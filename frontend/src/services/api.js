@@ -89,5 +89,43 @@ export const getCategoryBarChart = async (startDate, endDate) => {
   return response.data
 }
 
+// Tag APIs
+export const getAllTags = async () => {
+  const response = await api.get('/tags/list')
+  return response.data
+}
+
+export const addTagToTransaction = async (transactionId, tagName) => {
+  const response = await api.post(`/tags/${transactionId}/add`, {
+    tag_name: tagName
+  })
+  return response.data
+}
+
+export const removeTagFromTransaction = async (transactionId, tagName) => {
+  const response = await api.delete(`/tags/${transactionId}/remove?tag_name=${tagName}`)
+  return response.data
+}
+
+export const getTransactionTags = async (transactionId) => {
+  const response = await api.get(`/tags/${transactionId}/list`)
+  return response.data
+}
+
+export const getTransactionsByTag = async (tagName) => {
+  const response = await api.get(`/tags/filter/${encodeURIComponent(tagName)}`)
+  return response.data
+}
+
+export const getAllSources = async () => {
+  const response = await api.get('/tags/sources')
+  return response.data
+}
+
+export const getAllMerchants = async () => {
+  const response = await api.get('/tags/merchants')
+  return response.data
+}
+
 export default api
 
