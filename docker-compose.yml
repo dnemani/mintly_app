@@ -55,6 +55,27 @@ services:
     networks:
       - mintly_network
 
+  shiny:
+    build: .
+    container_name: mintly_shiny
+    command: shiny run --host 0.0.0.0 --port 8051 run_shiny_standalone.py
+    ports:
+      - "8051:8051"
+    volumes:
+      - ./run_shiny_standalone.py:/app/run_shiny_standalone.py
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./results:/app/results
+    environment:
+      - PYTHONUNBUFFERED=1
+      - BACKEND_API_URL=http://backend:8000/api
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - mintly_network
+
 networks:
   mintly_network:
     driver: bridge

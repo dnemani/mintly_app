@@ -36,6 +36,8 @@ class Transaction(BaseModel):
     notes: Optional[str] = None
     is_split: bool = False
     parent_transaction_id: Optional[int] = None
+    source: Optional[str] = None
+    merchant: Optional[str] = None
     
     @field_validator('amount')
     @classmethod

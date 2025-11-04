@@ -77,6 +77,12 @@ async def transactions_page(request: Request):
     return templates.TemplateResponse("transactions.html", {"request": request})
 
 
+@app.get("/bulk-edit", response_class=HTMLResponse)
+async def bulk_edit_page(request: Request):
+    """Bulk edit transactions page"""
+    return templates.TemplateResponse("bulk_edit.html", {"request": request})
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""

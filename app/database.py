@@ -483,6 +483,34 @@ class DatabaseManager:
             logger.error(f"Error getting transactions by tag: {str(e)}")
             raise
     
+    def update_transaction_merchant(self, transaction_id: int, merchant: str):
+        """Update the merchant for a transaction"""
+        try:
+            self.conn.execute("""
+                UPDATE transactions 
+                SET merchant = ? 
+                WHERE id = ?
+            """, [merchant, transaction_id])
+            
+            logger.info(f"Updated merchant for transaction {transaction_id} to '{merchant}'")
+        except Exception as e:
+            logger.error(f"Error updating merchant: {str(e)}")
+            raise
+    
+    def update_transaction_source(self, transaction_id: int, source: str):
+        """Update the source for a transaction"""
+        try:
+            self.conn.execute("""
+                UPDATE transactions 
+                SET source = ? 
+                WHERE id = ?
+            """, [source, transaction_id])
+            
+            logger.info(f"Updated source for transaction {transaction_id} to '{source}'")
+        except Exception as e:
+            logger.error(f"Error updating source: {str(e)}")
+            raise
+
     def close(self):
         """Close database connection"""
         self.conn.close()

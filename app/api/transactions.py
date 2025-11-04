@@ -193,3 +193,39 @@ async def get_transactions_by_date_range(start_date: str, end_date: str):
         logger.error(f"Error getting transactions by date range: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error retrieving transactions: {str(e)}")
 
+
+@router.put("/{transaction_id}/merchant")
+async def update_transaction_merchant(transaction_id: int, request: dict):
+    """Update the merchant for a transaction"""
+    try:
+        merchant = request.get('merchant', '')
+        db_manager.update_transaction_merchant(transaction_id, merchant)
+        
+        return {
+            "status": "success",
+            "message": f"Updated merchant for transaction {transaction_id}",
+            "merchant": merchant
+        }
+    
+    except Exception as e:
+        logger.error(f"Error updating merchant: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error updating merchant: {str(e)}")
+
+
+@router.put("/{transaction_id}/source")
+async def update_transaction_source(transaction_id: int, request: dict):
+    """Update the source for a transaction"""
+    try:
+        source = request.get('source', '')
+        db_manager.update_transaction_source(transaction_id, source)
+        
+        return {
+            "status": "success",
+            "message": f"Updated source for transaction {transaction_id}",
+            "source": source
+        }
+    
+    except Exception as e:
+        logger.error(f"Error updating source: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error updating source: {str(e)}")
+

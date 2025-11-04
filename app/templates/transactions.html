@@ -23,6 +23,8 @@
                         <th>Description</th>
                         <th>Amount</th>
                         <th>Category</th>
+                        <th>Merchant</th>
+                        <th>Source</th>
                         <th>Tags</th>
                         <th>Actions</th>
                     </tr>
@@ -178,6 +180,18 @@ function displayTransactions(transactions) {
                 <select class="category-select" data-transaction-id="${txn.id}" ${txn.is_split && !txn.parent_transaction_id ? 'disabled' : ''}>
                     ${categories.map(cat => `<option value="${cat}" ${cat === txn.category ? 'selected' : ''}>${cat}</option>`).join('')}
                 </select>
+            </td>
+            <td>
+                <div class="merchant-display" data-transaction-id="${txn.id}">
+                    <span class="merchant-text">${txn.merchant || 'Not set'}</span>
+                    <button class="btn-edit" onclick="editMerchant(${txn.id}, '${txn.merchant || ''}')" title="Edit merchant">✏️</button>
+                </div>
+            </td>
+            <td>
+                <div class="source-display" data-transaction-id="${txn.id}">
+                    <span class="source-text">${txn.source || 'Not set'}</span>
+                    <button class="btn-edit" onclick="editSource(${txn.id}, '${txn.source || ''}')" title="Edit source">✏️</button>
+                </div>
             </td>
             <td>
                 <div class="tags-display" data-transaction-id="${txn.id}">
@@ -499,6 +513,64 @@ async function removeTag(tagName) {
         } else {
             const data = await response.json();
             alert('Error removing tag: ' + data.detail);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+// Edit merchant function
+async function editMerchant(transactionId, currentMerchant) {
+    const newMerchant = prompt('Enter new merchant:', currentMerchant);
+    if (newMerchant === null) return; // User cancelled
+    
+    try {
+        const response = await fetch(`/api/transactions/${transactionId}/merchant`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ merchant: newMerchant })
+        });
+        
+        if (response.ok) {
+            // Update the display immediately
+            const merchantDisplay = document.querySelector(`.merchant-display[data-transaction-id="${transactionId}"] .merchant-text`);
+            if (merchantDisplay) {
+                merchantDisplay.textContent = newMerchant || 'Not set';
+            }
+        } else {
+            const data = await response.json();
+            alert('Error updating merchant: ' + data.detail);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+// Edit source function
+async function editSource(transactionId, currentSource) {
+    const newSource = prompt('Enter new source:', currentSource);
+    if (newSource === null) return; // User cancelled
+    
+    try {
+        const response = await fetch(`/api/transactions/${transactionId}/source`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ source: newSource })
+        });
+        
+        if (response.ok) {
+            // Update the display immediately
+            const sourceDisplay = document.querySelector(`.source-display[data-transaction-id="${transactionId}"] .source-text`);
+            if (sourceDisplay) {
+                sourceDisplay.textContent = newSource || 'Not set';
+            }
+        } else {
+            const data = await response.json();
+            alert('Error updating source: ' + data.detail);
         }
     } catch (error) {
         alert('Error: ' + error.message);

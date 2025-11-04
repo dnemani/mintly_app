@@ -13,3 +13,4 @@ dash==2.14.2
 dash-bootstrap-components==1.5.0
 werkzeug==3.0.1
 flask==3.0.0
+shiny==0.7.1
