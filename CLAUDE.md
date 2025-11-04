@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Application Overview
 
-Mintly is a personal budgeting application that parses credit card statements (CSV), auto-categorizes transactions, and provides interactive reports. Built with FastAPI backend, DuckDB database, Polars for data processing, and offers multiple frontend options (React SPA, Python/Jinja2, Dash, and Shiny).
+Mintly is a personal budgeting application that parses credit card statements (CSV), auto-categorizes transactions, and provides interactive reports. Built with FastAPI backend, DuckDB database, Polars for data processing, and offers multiple frontend options (React SPA, Python/Jinja2, Dash, Shiny, and Streamlit).
 
 ## Common Commands
 
@@ -26,6 +26,9 @@ python run_dash_standalone.py
 
 # Standalone Shiny reports
 shiny run --host 0.0.0.0 --port 8051 run_shiny_standalone.py
+
+# Standalone Streamlit reports
+streamlit run run_streamlit_standalone.py --server.port 8052 --server.address 0.0.0.0
 
 # Health check
 curl http://localhost:8000/health
@@ -133,6 +136,15 @@ duckdb data/mintly.db "SELECT category, COUNT(*) FROM transactions GROUP BY cate
 - Similar functionality to Dash but using Shiny for Python framework
 - Command: `shiny run --host 0.0.0.0 --port 8051 run_shiny_standalone.py`
 
+**Streamlit Reports (Port 8052)**
+- Standalone application using `run_streamlit_standalone.py`
+- Creates DB copy (`mintly_streamlit.db`) for read-only access (prevents locks)
+- Top-to-bottom script execution model with automatic reruns
+- Interactive widgets: date pickers, sliders, multiselect, buttons
+- Caching with `@st.cache_data` and `@st.cache_resource`
+- Session state management for user interactions
+- Command: `streamlit run run_streamlit_standalone.py --server.port 8052 --server.address 0.0.0.0`
+
 ## Important Patterns
 
 ### Database Connection Management
@@ -146,9 +158,12 @@ db_manager = DatabaseManager(db_path="data/mintly_dash.db", read_only=True)
 
 # Read-only for concurrent access (Shiny reports)
 db_manager = DatabaseManager(db_path="data/mintly_shiny.db", read_only=True)
+
+# Read-only for concurrent access (Streamlit reports)
+db_manager = DatabaseManager(db_path="data/mintly_streamlit.db", read_only=True)
 ```
 
-**Why**: DuckDB locks on writes. Dash and Shiny reports use separate DB copies in read-only mode to avoid conflicts with the main app.
+**Why**: DuckDB locks on writes. Dash, Shiny, and Streamlit reports use separate DB copies in read-only mode to avoid conflicts with the main app.
 
 ### Batch Inserts with Sequences
 
@@ -195,6 +210,7 @@ app/
 ├── merchant_extractor.py # Merchant name extraction logic
 ├── dash_reports.py      # Dash app definition (not mounted in main.py)
 ├── shiny_reports.py     # Shiny app definition (standalone)
+├── streamlit_reports.py # Streamlit app definition (standalone)
 ├── api/
 │   ├── transactions.py  # Upload, CRUD, split operations
 │   ├── reports.py       # Analytics, charts, summaries
@@ -212,7 +228,8 @@ frontend/                # React SPA (Vite)
 data/
 ├── mintly.db            # Main database
 ├── mintly_dash.db       # Copy for Dash reports (read-only)
-└── mintly_shiny.db      # Copy for Shiny reports (read-only)
+├── mintly_shiny.db      # Copy for Shiny reports (read-only)
+└── mintly_streamlit.db  # Copy for Streamlit reports (read-only)
 
 logs/                    # Timestamped application logs
 ```
@@ -244,7 +261,7 @@ Logs include: timestamp, level, module name, message. Check `logs/` directory fo
 
 5. **Category Enum**: All categories must be valid `CategoryEnum` values. Free-form strings will fail Pydantic validation.
 
-6. **Port Conflicts**: App uses ports 8000 (backend), 3000 (React), 8050 (Dash), 8051 (Shiny). Check with `lsof -i :PORT` if startup fails.
+6. **Port Conflicts**: App uses ports 8000 (backend), 3000 (React), 8050 (Dash), 8051 (Shiny), 8052 (Streamlit). Check with `lsof -i :PORT` if startup fails.
 
 ## Tag-Based Filtering
 
@@ -259,11 +276,11 @@ See `TAG_BASED_FILTERING_IMPLEMENTATION.md` for detailed implementation.
 
 ## Docker Considerations
 
-- Backend healthcheck prevents frontend/dash/shiny from starting before API is ready
+- Backend healthcheck prevents frontend/dash/shiny/streamlit from starting before API is ready
 - Volumes mount: `./data`, `./logs`, `./results` for persistence across container restarts
 - Network: `mintly_network` bridge allows inter-container communication
 - Frontend env: `VITE_API_URL` points to backend service name (not localhost)
-- Services: backend (8000), frontend (3000), dash (8050), shiny (8051)
+- Services: backend (8000), frontend (3000), dash (8050), shiny (8051), streamlit (8052)
 
 ## Testing Sample Data
 

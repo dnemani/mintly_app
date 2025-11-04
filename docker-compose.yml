@@ -76,6 +76,27 @@ services:
     networks:
       - mintly_network
 
+  streamlit:
+    build: .
+    container_name: mintly_streamlit
+    command: streamlit run run_streamlit_standalone.py --server.port 8052 --server.address 0.0.0.0 --server.headless true
+    ports:
+      - "8052:8052"
+    volumes:
+      - ./run_streamlit_standalone.py:/app/run_streamlit_standalone.py
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./results:/app/results
+    environment:
+      - PYTHONUNBUFFERED=1
+      - BACKEND_API_URL=http://backend:8000/api
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - mintly_network
+
 networks:
   mintly_network:
     driver: bridge

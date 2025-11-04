@@ -14,3 +14,4 @@ dash-bootstrap-components==1.5.0
 werkzeug==3.0.1
 flask==3.0.0
 shiny==0.7.1
+streamlit==1.29.0
