@@ -38,6 +38,9 @@ data/*.wal
 logs/*.log
 results/*
 
+# Frontend
+node_modules/
+
 # Keep directory structure
 !data/.gitkeep
 !logs/.gitkeep
