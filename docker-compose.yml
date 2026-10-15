@@ -8,8 +8,11 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
       - ./results:/app/results
+      - ./sample_citibank.csv:/app/sample_citibank.csv
+      - ./sample_costco_visa.csv:/app/sample_costco_visa.csv
     environment:
       - PYTHONUNBUFFERED=1
+      - LOAD_SAMPLES=true
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]

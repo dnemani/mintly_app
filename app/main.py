@@ -6,12 +6,16 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.wsgi import WSGIMiddleware
+import os
 import uvicorn
 import logging
 from datetime import datetime
 from pathlib import Path
 
 from app.api import transactions, reports, tags
+from app.csv_parsers import CSVParserFactory
+from app.categorizer import categorizer
+from app.db_instance import db_manager
 
 # Configure logging
 log_dir = Path("logs")
@@ -81,6 +85,52 @@ async def transactions_page(request: Request):
 async def bulk_edit_page(request: Request):
     """Bulk edit transactions page"""
     return templates.TemplateResponse("bulk_edit.html", {"request": request})
+
+
+def _load_sample_file(csv_file, db_manager, parser_factory, categorizer):
+    """Load a single sample CSV file into the database. Returns the count loaded, or 0 on failure."""
+    try:
+        csv_content = csv_file.read_text(encoding="utf-8")
+        transactions = parser_factory.parse(csv_content)
+        if not transactions:
+            logger.warning(f"No transactions found in {csv_file.name}")
+            return 0
+
+        categorized_transactions = categorizer.categorize_batch(transactions)
+        count = db_manager.insert_transactions_batch(categorized_transactions)
+        return count
+    except Exception as e:
+        logger.error(f"Failed to load {csv_file.name}: {e}")
+        return 0
+
+
+@app.on_event("startup")
+async def seed_sample_data():
+    """Seed sample transactions if database is empty or has few records."""
+    if os.environ.get("LOAD_SAMPLES") != "true":
+        logger.debug("LOAD_SAMPLES not set, skipping seed data.")
+        return
+
+    sample_dir = Path(__file__).resolve().parent.parent
+    sample_files = [f for f in sample_dir.glob("sample_*.csv")]
+
+    # Check if database already has data
+    df = db_manager.get_all_transactions()
+    if len(df) >= 5:
+        logger.info(f"Database already has {len(df)} transactions, skipping seed.")
+        return
+
+    logger.info(f"Database has {len(df)} transactions, loading sample data...")
+
+    total_loaded = 0
+    for csv_file in sorted(sample_files):
+        count = _load_sample_file(csv_file, db_manager, CSVParserFactory(), categorizer)
+        if count > 0:
+            total_loaded += count
+            logger.info(f"✓ Loaded {count} transactions from {csv_file.name}")
+
+    logger.info(f"Seed complete: {total_loaded} transactions loaded from {len(sample_files)} file(s).")
+
 
 
 @app.get("/health")

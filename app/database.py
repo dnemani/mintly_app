@@ -200,12 +200,27 @@ class DatabaseManager:
         """Get all transactions as a Polars DataFrame"""
         try:
             result = self.conn.execute("""
-                SELECT id, date, description, amount, category, notes, is_split, parent_transaction_id, source, merchant
+                SELECT id, date, description, amount, category, notes, is_split, parent_transaction_id, source, merchant, created_at
                 FROM transactions
                 ORDER BY date DESC
             """).arrow()
-            
-            df = pl.from_arrow(result)
+
+            try:
+                df = pl.from_arrow(result)
+            except ValueError:
+                df = pl.DataFrame({
+                    "id": [],
+                    "date": [],
+                    "description": [],
+                    "amount": [],
+                    "category": [],
+                    "notes": [],
+                    "is_split": [],
+                    "parent_transaction_id": [],
+                    "source": [],
+                    "merchant": [],
+                    "created_at": [],
+                })
             logger.info(f"Retrieved {len(df)} transactions")
             return df
         except Exception as e:
